@@ -143,6 +143,10 @@ async function start() {
     userService.setDb(db);
     ofertaService.setDb(db);
     broadcastService.setDb(db);
+    
+    const automation = await import('./collectors/automation.js');
+    automation.setDatabase(db);
+    
     logger.info({ msg: 'Serviços inicializados' });
   } catch (err) {
     logger.error({ erro: err.message, msg: 'Falha ao configurar serviços' });

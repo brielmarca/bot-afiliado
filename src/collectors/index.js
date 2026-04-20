@@ -2,10 +2,12 @@ import mercadolivre from './mercadolivre.js';
 import shopee from './shopee.js';
 import rss from './rss.js';
 import scraper from './scraper.js';
+import automation from './automation.js';
 import logger from '../utils/logger.js';
 
 export async function coletarTodas() {
   const results = await Promise.allSettled([
+    automation.runCollection(),
     mercadolivre.collect(),
     shopee.collect(),
     rss.collect(),

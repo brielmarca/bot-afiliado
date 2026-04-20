@@ -127,4 +127,46 @@ router.get('/admin/test/rss', requireAdmin, async (req, res) => {
   }
 });
 
+router.post('/admin/process-url', requireAdmin, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ erro: 'URL é obrigatória' });
+    }
+
+    const automation = await import('../collectors/automation.js');
+    const result = await automation.processLink(url);
+
+    if (result.hash) {
+      await broadcastService.broadcastOferta(result.oferta);
+      res.json({ sucesso: true, oferta: result.oferta });
+    } else {
+      res.json({ sucesso: false, msg: 'Oferta já processada anteriormente' });
+    }
+  } catch (err) {
+    logger.error({ erro: err.message });
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+router.post('/admin/auto-collect', requireAdmin, async (req, res) => {
+  try {
+    const automation = await import('../collectors/automation.js');
+    const ofertas = await automation.runCollection();
+
+    for (const oferta of ofertas) {
+      try {
+        await broadcastService.broadcastOferta(oferta);
+      } catch (e) {
+        logger.error({ erro: e.message, msg: 'Erro no broadcast' });
+      }
+    }
+
+    res.json({ sucesso: true, ofertas: ofertas.length });
+  } catch (err) {
+    logger.error({ erro: err.message });
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 export default router;
