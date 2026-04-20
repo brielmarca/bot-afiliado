@@ -125,7 +125,8 @@ export function getDb() {
 
 export function cleanOldData(database = db) {
   if (!database) return;
-  return database.run(`DELETE FROM envios WHERE enviado_em < datetime('now', '-7 days')`);
+  const data7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  return database.run(`DELETE FROM envios WHERE enviado_em < ?`, [data7dias]);
 }
 
 export default { initDb, setDb, getDb, cleanOldData };

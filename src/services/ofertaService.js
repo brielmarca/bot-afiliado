@@ -12,12 +12,21 @@ export function gerarHash(oferta) {
   return crypto.createHash('sha256').update(`${normalized}|${oferta.plataforma}`).digest('hex');
 }
 
+function getYesterdayISO() {
+  return new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+}
+
+function getTodayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
 export async function salvarOferta(oferta) {
   const hashDedup = gerarHash(oferta);
+  const yesterday = getYesterdayISO();
 
   const existing = await db.get(
-    'SELECT id FROM ofertas WHERE hash_dedup = ? AND criado_em > datetime("now", "-1 day")',
-    [hashDedup]
+    'SELECT id FROM ofertas WHERE hash_dedup = ? AND criado_em > ?',
+    [hashDedup, yesterday]
   );
 
   if (existing) {
@@ -25,9 +34,10 @@ export async function salvarOferta(oferta) {
     return null;
   }
 
+  const now = new Date().toISOString();
   const result = await db.run(
-    `INSERT INTO ofertas (titulo, preco, preco_de, desconto_pct, link_afiliado, imagem_url, plataforma, fonte, hash_dedup)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO ofertas (titulo, preco, preco_de, desconto_pct, link_afiliado, imagem_url, plataforma, fonte, hash_dedup, criado_em)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       oferta.titulo,
       oferta.preco,
@@ -38,6 +48,7 @@ export async function salvarOferta(oferta) {
       oferta.plataforma,
       oferta.fonte,
       hashDedup,
+      now,
     ]
   );
 
@@ -50,18 +61,20 @@ export async function getOferta(id) {
 }
 
 export async function getOfertasRecentes() {
-  return db.all(
-    'SELECT * FROM ofertas WHERE criado_em > datetime("now", "-1 day") ORDER BY criado_em DESC'
-  );
+  const yesterday = getYesterdayISO();
+  return db.all('SELECT * FROM ofertas WHERE criado_em > ? ORDER BY criado_em DESC', [yesterday]);
 }
 
 export async function getStats() {
   const total = await db.get('SELECT COUNT(*) as count FROM ofertas');
+  const today = getTodayISO();
   const hoje = await db.get(
-    'SELECT COUNT(*) as count FROM ofertas WHERE date(criado_em) = date("now")'
+    'SELECT COUNT(*) as count FROM ofertas WHERE date(criado_em) = ?',
+    [today]
   );
   const envios = await db.get(
-    'SELECT COUNT(*) as count FROM envios WHERE date(enviado_em) = date("now")'
+    'SELECT COUNT(*) as count FROM envios WHERE date(enviado_em) = ?',
+    [today]
   );
 
   return {

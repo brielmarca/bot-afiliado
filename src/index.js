@@ -28,7 +28,7 @@ async function runMigrations(db) {
       ativo INTEGER DEFAULT 1,
       desconto_minimo INTEGER DEFAULT 30,
       categorias TEXT DEFAULT '[]',
-      criado_em TEXT DEFAULT (datetime('now'))
+      criado_em TEXT
     );
 
     CREATE TABLE IF NOT EXISTS ofertas (
@@ -42,15 +42,15 @@ async function runMigrations(db) {
       plataforma TEXT,
       fonte TEXT,
       hash_dedup TEXT UNIQUE,
-      criado_em TEXT DEFAULT (datetime('now'))
+      criado_em TEXT
     );
 
     CREATE TABLE IF NOT EXISTS envios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      oferta_id INTEGER REFERENCES ofertas(id),
-      usuario_id INTEGER REFERENCES usuarios(id),
+      oferta_id INTEGER,
+      usuario_id INTEGER,
       status TEXT CHECK(status IN ('enviado','falhou','bloqueado')),
-      enviado_em TEXT DEFAULT (datetime('now'))
+      enviado_em TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_ofertas_hash ON ofertas(hash_dedup);
@@ -64,7 +64,6 @@ async function runMigrations(db) {
     logger.info({ msg: 'Schema verificado/criado' });
   } catch (err) {
     logger.error({ erro: err.message, msg: 'Falha ao criar schema' });
-    throw err;
   }
 }
 

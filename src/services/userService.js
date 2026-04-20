@@ -8,16 +8,17 @@ export function setDb(database) {
 
 export async function upsertUsuario({ telegram_id, username, primeiro_nome }) {
   const existing = await db.get('SELECT id FROM usuarios WHERE telegram_id = ?', [telegram_id]);
+  const now = new Date().toISOString();
 
   if (existing) {
     await db.run(
-      'UPDATE usuarios SET username = ?, atualizado_em = datetime("now") WHERE telegram_id = ?',
-      [username || null, telegram_id]
+      'UPDATE usuarios SET username = ?, criado_em = ? WHERE telegram_id = ?',
+      [username || null, now, telegram_id]
     );
   } else {
     await db.run(
-      'INSERT INTO usuarios (telegram_id, username) VALUES (?, ?)',
-      [telegram_id, username || null]
+      'INSERT INTO usuarios (telegram_id, username, ativo, desconto_minimo, categorias, criado_em) VALUES (?, ?, 1, 30, ?, ?)',
+      [telegram_id, username || null, '[]', now]
     );
   }
 
@@ -39,8 +40,10 @@ export async function getUsuario(telegram_id) {
 }
 
 export async function setAtivo(telegram_id, ativo) {
-  await db.run('UPDATE usuarios SET ativo = ?, atualizado_em = datetime("now") WHERE telegram_id = ?', [
+  const now = new Date().toISOString();
+  await db.run('UPDATE usuarios SET ativo = ?, criado_em = ? WHERE telegram_id = ?', [
     ativo ? 1 : 0,
+    now,
     telegram_id,
   ]);
   logger.info({ telegram_id, ativo, msg: 'Status atualizado' });
@@ -48,8 +51,10 @@ export async function setAtivo(telegram_id, ativo) {
 
 export async function setDescontoMinimo(telegram_id, pct) {
   const valor = Math.max(0, Math.min(99, pct));
-  await db.run('UPDATE usuarios SET desconto_minimo = ?, atualizado_em = datetime("now") WHERE telegram_id = ?', [
+  const now = new Date().toISOString();
+  await db.run('UPDATE usuarios SET desconto_minimo = ?, criado_em = ? WHERE telegram_id = ?', [
     valor,
+    now,
     telegram_id,
   ]);
   logger.info({ telegram_id, desconto_minimo: valor, msg: 'Desconto mínimo atualizado' });
@@ -57,8 +62,10 @@ export async function setDescontoMinimo(telegram_id, pct) {
 
 export async function setCategorias(telegram_id, categorias) {
   const categoriasJson = JSON.stringify(categorias);
-  await db.run('UPDATE usuarios SET categorias = ?, atualizado_em = datetime("now") WHERE telegram_id = ?', [
+  const now = new Date().toISOString();
+  await db.run('UPDATE usuarios SET categorias = ?, criado_em = ? WHERE telegram_id = ?', [
     categoriasJson,
+    now,
     telegram_id,
   ]);
   logger.info({ telegram_id, categorias, msg: 'Categorias atualizadas' });
