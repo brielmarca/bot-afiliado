@@ -111,4 +111,20 @@ router.get('/admin/test/mercadolivre', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/admin/test/rss', requireAdmin, async (req, res) => {
+  try {
+    const collector = await import('../collectors/rss.js');
+    const ofertas = await collector.collect();
+
+    res.json({
+      fonte: 'rss',
+      total: ofertas.length,
+      sample: ofertas.slice(0, 3),
+    });
+  } catch (err) {
+    logger.error({ erro: err.message });
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 export default router;
