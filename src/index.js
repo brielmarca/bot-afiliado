@@ -125,6 +125,9 @@ async function start() {
   try {
     db = initDb();
     setDb(db);
+    if (db.createTables) {
+      await db.createTables();
+    }
     await runMigrations(db);
     logger.info({ msg: 'Banco inicializado com sucesso' });
   } catch (err) {

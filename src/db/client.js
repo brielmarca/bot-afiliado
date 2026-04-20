@@ -1,53 +1,70 @@
 import { createClient as createLibSQLClient } from '@libsql/client';
-import { existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
 import logger from '../utils/logger.js';
 
 let db = null;
 let useTurso = false;
+let client = null;
 
-const SCHEMA = `
+const SCHEMA_USUARIOS = `
 CREATE TABLE IF NOT EXISTS usuarios (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  telegram_id     INTEGER UNIQUE NOT NULL,
-  username        TEXT,
-  ativo           INTEGER DEFAULT 1,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id INTEGER UNIQUE NOT NULL,
+  username TEXT,
+  ativo INTEGER DEFAULT 1,
   desconto_minimo INTEGER DEFAULT 30,
-  categorias      TEXT DEFAULT '[]',
-  criado_em       TEXT DEFAULT (datetime('now'))
-);
+  categorias TEXT DEFAULT '[]',
+  criado_em TEXT DEFAULT (datetime('now'))
+`;
 
+const SCHEMA_OFERTAS = `
 CREATE TABLE IF NOT EXISTS ofertas (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  titulo        TEXT,
-  preco         REAL,
-  preco_de      REAL,
-  desconto_pct  INTEGER,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  titulo TEXT,
+  preco REAL,
+  preco_de REAL,
+  desconto_pct INTEGER,
   link_afiliado TEXT NOT NULL,
-  imagem_url    TEXT,
-  plataforma    TEXT,
-  fonte         TEXT,
-  hash_dedup    TEXT UNIQUE,
-  criado_em     TEXT DEFAULT (datetime('now'))
-);
+  imagem_url TEXT,
+  plataforma TEXT,
+  fonte TEXT,
+  hash_dedup TEXT UNIQUE,
+  criado_em TEXT DEFAULT (datetime('now')))
+`;
 
+const SCHEMA_ENVIOS = `
 CREATE TABLE IF NOT EXISTS envios (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  oferta_id  INTEGER REFERENCES ofertas(id),
-  usuario_id INTEGER REFERENCES usuarios(id),
-  status     TEXT CHECK(status IN ('enviado','falhou','bloqueado')),
-  enviado_em TEXT DEFAULT (datetime('now'))
-);
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  oferta_id INTEGER,
+  usuario_id INTEGER,
+  status TEXT CHECK(status IN ('enviado','falhou','bloqueado')),
+  enviado_em TEXT DEFAULT (datetime('now')))
+`;
 
-CREATE INDEX IF NOT EXISTS idx_ofertas_hash   ON ofertas(hash_dedup);
+const INDEXES = `
+CREATE INDEX IF NOT EXISTS idx_ofertas_hash ON ofertas(hash_dedup);
 CREATE INDEX IF NOT EXISTS idx_ofertas_criado ON ofertas(criado_em);
 CREATE INDEX IF NOT EXISTS idx_usuarios_ativo ON usuarios(ativo);
 CREATE INDEX IF NOT EXISTS idx_envios_usuario ON envios(usuario_id);
 `;
 
 function initTurso(url, token) {
-  const client = createLibSQLClient({ url, authToken: token });
+  client = createLibSQLClient({ url, authToken: token });
   useTurso = true;
+
+  async function execMulti(sql) {
+    const statements = sql.split(';').filter((s) => s.trim());
+    for (const stmt of statements) {
+      if (stmt.trim()) {
+        try {
+          await client.execute({ sql: stmt, args: [] });
+        } catch (e) {
+          if (!e.message?.includes('already exists')) {
+            logger.warn({ sql: stmt, erro: e.message, msg: 'Statement ignorado ou erro' });
+          }
+        }
+      }
+    }
+  }
 
   return {
     async run(sql, params = []) {
@@ -55,19 +72,22 @@ function initTurso(url, token) {
     },
     async get(sql, params = []) {
       const result = await client.execute({ sql, args: params });
-      return result.rows[0] || null;
+      return result.rows?.[0] || null;
     },
     async all(sql, params = []) {
       const result = await client.execute({ sql, args: params });
-      return result.rows;
+      return result.rows || [];
     },
     async exec(sql) {
-      const statements = sql.split(';').filter((s) => s.trim());
-      for (const stmt of statements) {
-        if (stmt.trim()) {
-          await client.execute({ sql: stmt, args: [] });
-        }
-      }
+      await execMulti(sql);
+    },
+    async createTables() {
+      logger.info({ msg: 'Criando tabelas no Turso...' });
+      await execMulti(SCHEMA_USUARIOS);
+      await execMulti(SCHEMA_OFERTAS);
+      await execMulti(SCHEMA_ENVIOS);
+      await execMulti(INDEXES);
+      logger.info({ msg: 'Tabelas criadas com sucesso' });
     },
     close() {
       return client.close();
