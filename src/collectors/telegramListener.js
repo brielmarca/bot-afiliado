@@ -180,7 +180,7 @@ export function init(token, groupIds, onOferta) {
     }
   });
 
-  bot.on('error', (err) => {
+  bot.catch((err) => {
     logger.error({ erro: err.message, msg: 'Erro no bot listener' });
   });
 
