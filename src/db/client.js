@@ -48,8 +48,9 @@ CREATE INDEX IF NOT EXISTS idx_envios_usuario ON envios(usuario_id);
 `;
 
 function initTurso(url, token) {
+  const httpUrl = url.replace('libsql://', 'https://');
   client = createLibSQLClient({ 
-    url, 
+    url: httpUrl, 
     authToken: token, 
     enableWrites: true
   });
