@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "grammy": "^1.21.1",
-    "better-sqlite3": "^9.4.3",
     "@libsql/client": "^0.6.0",
     "node-cron": "^3.0.3",
     "axios": "^1.6.7",

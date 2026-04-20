@@ -140,6 +140,88 @@ Para usar banco de dados remoto Turso em vez de SQLite local:
    - `TURSO_URL`: URL do banco
    - `TURSO_TOKEN`: Token de acesso
 
+## Deploy no Render com Turso
+
+Após criar o banco Turso (seção acima), siga estes passos para fazer deploy no Render com banco de dados remoto:
+
+### 1. Preparar o Repositório
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+```
+
+### 2. Criar Conta no Render
+
+1. Acesse [render.com](https://render.com)
+2. Faça login com GitHub
+3. Autorize o acesso aos repositórios
+
+### 3. Criar Web Service
+
+1. No dashboard Render, clique em **New → Web Service**
+2. Conecte seu repositório GitHub
+3. Configure:
+   - **Name**: `bot-afiliado`
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node src/index.js`
+   - **Plan**: Free
+
+### 4. Configurar Variáveis de Ambiente
+
+No painel do serviço, vá em **Environment** e adicione:
+
+| Variável | Valor |
+|----------|-------|
+| `NODE_ENV` | production |
+| `PORT` | 3000 |
+| `BOT_TOKEN` | seu_bot_token |
+| `ADMIN_SECRET` | sua_senha_admin |
+| `ML_CLIENT_ID` | seu_client_id |
+| `ML_CLIENT_SECRET` | seu_client_secret |
+| `ML_PARTNER_ID` | sua_tag |
+| `SOURCE_GROUP_IDS` | ids_dos_grupos |
+| `CRON_SCHEDULE` | 0 */3 * * * |
+| `DATABASE_PATH` | ./data/bot.db |
+| `MIN_DISCOUNT_DEFAULT` | 30 |
+| `TURSO_URL` | libsql://seu-token@nome-do-banco.turso.io |
+| `TURSO_TOKEN` | seu-token-de-acesso |
+
+### 5. Não Necessário Adicionar Disco
+
+Como está usando Turso (banco remoto), não é necessário criar disco local para SQLite.
+
+### 6. Deploy Automático
+
+O Render fará deploy automaticamente após cada push para main.
+
+### 7. Verificar Funcionamento
+
+Acesse `https://seu-servico.onrender.com/health` para confirmar que o bot está rodando.
+
+### 8. Testar Coleta
+
+Execute um teste de coleta:
+```
+curl -X POST https://seu-servico.onrender.com/admin/collect
+```
+
+## Troubleshooting Deploy
+
+**Erro "Connection refused" ao Turso:**
+- Verificar se `TURSO_URL` e `TURSO_TOKEN` estão corretos
+- Verificar se o banco Turso está ativo
+
+**Erro "Disk" no deploy:**
+- Se não usar Turso, crie um Disco conforme instrução anterior
+- Se usar Turso, remova `DATABASE_PATH` das variáveis
+
+**Bot não responde:**
+- Verificar logs no painel do Render
+- Confirme que `BOT_TOKEN` está correto
+
 ## Desenvolvimento Local
 
 ```bash

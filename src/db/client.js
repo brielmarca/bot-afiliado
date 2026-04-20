@@ -1,8 +1,6 @@
-import Database from 'better-sqlite3';
 import { createClient as createLibSQLClient } from '@libsql/client';
-import { readFileSync, existsSync, renameSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
-import { mkdirSync } from 'fs';
 import logger from '../utils/logger.js';
 
 let db = null;
@@ -47,48 +45,6 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_ativo ON usuarios(ativo);
 CREATE INDEX IF NOT EXISTS idx_envios_usuario ON envios(usuario_id);
 `;
 
-function initSqlite(path) {
-  const dbDir = dirname(path);
-  if (!existsSync(dbDir)) {
-    mkdirSync(dbDir, { recursive: true });
-  }
-
-  let sqliteDb;
-
-  try {
-    sqliteDb = new Database(path);
-  } catch (err) {
-    logger.error({ msg: 'Erro ao abrir SQLite', err: err.message });
-    const corruptedPath = `${path}.corrupted.${Date.now()}`;
-    renameSync(path, corruptedPath);
-    logger.warn({ msg: 'Banco corrompido movido', path: corruptedPath });
-    sqliteDb = new Database(path);
-  }
-
-  sqliteDb.pragma('journal_mode = WAL');
-  sqliteDb.pragma('busy_timeout = 5000');
-  sqliteDb.pragma('synchronous = NORMAL');
-  sqliteDb.pragma('foreign_keys = ON');
-
-  return {
-    run(sql, params = []) {
-      return sqliteDb.prepare(sql).run(...params);
-    },
-    get(sql, params = []) {
-      return sqliteDb.prepare(sql).get(...params);
-    },
-    all(sql, params = []) {
-      return sqliteDb.prepare(sql).all(...params);
-    },
-    exec(sql) {
-      return sqliteDb.exec(sql);
-    },
-    close() {
-      return sqliteDb.close();
-    },
-  };
-}
-
 function initTurso(url, token) {
   const client = createLibSQLClient({ url, authToken: token });
   useTurso = true;
@@ -123,14 +79,12 @@ export function initDb() {
   const tursoUrl = process.env.TURSO_URL;
   const tursoToken = process.env.TURSO_TOKEN;
 
-  if (tursoUrl && tursoToken) {
-    logger.info({ msg: 'Usando Turso como banco de dados' });
-    return initTurso(tursoUrl, tursoToken);
+  if (!tursoUrl || !tursoToken) {
+    throw new Error('TURSO_URL e TURSO_TOKEN são obrigatórios');
   }
 
-  const dbPath = process.env.DATABASE_PATH || './data/bot.db';
-  logger.info({ msg: 'Usando SQLite local', path: dbPath });
-  return initSqlite(dbPath);
+  logger.info({ msg: 'Usando Turso como banco de dados' });
+  return initTurso(tursoUrl, tursoToken);
 }
 
 export function setDb(database) {
