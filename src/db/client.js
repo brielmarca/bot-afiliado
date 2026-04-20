@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   ativo INTEGER DEFAULT 1,
   desconto_minimo INTEGER DEFAULT 30,
   categorias TEXT DEFAULT '[]',
-  criado_em TEXT DEFAULT (datetime('now'))
+  criado_em TEXT)
 `;
 
 const SCHEMA_OFERTAS = `
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS ofertas (
   plataforma TEXT,
   fonte TEXT,
   hash_dedup TEXT UNIQUE,
-  criado_em TEXT DEFAULT (datetime('now')))
+  criado_em TEXT)
 `;
 
 const SCHEMA_ENVIOS = `
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS envios (
   oferta_id INTEGER,
   usuario_id INTEGER,
   status TEXT CHECK(status IN ('enviado','falhou','bloqueado')),
-  enviado_em TEXT DEFAULT (datetime('now')))
+  enviado_em TEXT)
 `;
 
 const INDEXES = `
@@ -48,7 +48,11 @@ CREATE INDEX IF NOT EXISTS idx_envios_usuario ON envios(usuario_id);
 `;
 
 function initTurso(url, token) {
-  client = createLibSQLClient({ url, authToken: token, enableWrites: true });
+  client = createLibSQLClient({ 
+    url, 
+    authToken: token, 
+    enableWrites: true
+  });
   useTurso = true;
 
   async function execMulti(sql) {
@@ -117,11 +121,6 @@ export function getDb() {
 
 export function cleanOldData(database = db) {
   if (!database) return;
-
-  if (useTurso) {
-    return database.run(`DELETE FROM envios WHERE enviado_em < datetime('now', '-7 days')`);
-  }
-
   return database.run(`DELETE FROM envios WHERE enviado_em < datetime('now', '-7 days')`);
 }
 
