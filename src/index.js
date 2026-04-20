@@ -171,19 +171,14 @@ async function start() {
         process.env.SOURCE_GROUP_IDS,
         async (oferta) => {
           try {
-            const id = await ofertaService.salvarOferta(oferta);
-            if (id) {
-              setTimeout(async () => {
-                await broadcastService.broadcastOferta(oferta);
-              }, 5000);
-            }
+            await ofertaService.salvarOferta(oferta);
           } catch (err) {
             logger.error({ erro: err.message, msg: 'Falha ao salvar oferta do listener' });
           }
         }
       );
       telegramListener.start();
-      logger.info({ msg: 'Telegram listener iniciado' });
+      logger.info({ msg: 'Telegram listener iniciada (modo grupo autônomo)' });
     } catch (err) {
       logger.error({ erro: err.message, msg: 'Falha ao iniciar listener' });
     }

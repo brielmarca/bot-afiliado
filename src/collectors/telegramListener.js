@@ -5,6 +5,7 @@ import { linkCache } from '../utils/cache.js';
 
 let bot = null;
 let onOfertaCallback = null;
+const chatIdsProcessados = new Set();
 
 const LINK_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
 
@@ -23,27 +24,23 @@ function detectPlatform(url) {
   return 'desconhecida';
 }
 
-function buildAffiliateLink(url, plataforma) {
-  try {
-    const urlObj = new URL(url);
+function extractPrice(text) {
+  const matches = text.match(/R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g);
+  if (!matches || matches.length === 0) return { preco: 0, preco_de: 0 };
 
-    if (plataforma === 'mercadolivre') {
-      const partnerId = process.env.ML_PARTNER_ID;
-      if (partnerId) urlObj.searchParams.set('tag', partnerId);
-    } else if (plataforma === 'shopee') {
-      const pid = process.env.SHOPEE_PID;
-      if (pid) {
-        const pathParts = urlObj.pathname.split('/').filter(Boolean);
-        const itemId = pathParts.pop()?.replace('.html', '') || '';
-        const shopId = pathParts.find((p) => p.startsWith('shop/'))?.replace('shop/', '') || '';
-        return `https://shope.ee/affiliate?pid=${pid}&item_id=${itemId}&shop_id=${shopId}`;
-      }
-    }
+  const prices = matches.map((m) =>
+    parseFloat(m.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.'))
+  );
 
-    return urlObj.toString();
-  } catch {
-    return url;
-  }
+  const preco = prices[0];
+  const preco_de = prices.length > 1 ? prices[1] : preco;
+
+  return { preco, preco_de };
+}
+
+function calculateDiscount(preco, precoDe) {
+  if (!precoDe || precoDe <= preco || precoDe <= 0) return 0;
+  return Math.round(((precoDe - preco) / precoDe) * 100);
 }
 
 async function fetchOgData(url) {
@@ -70,12 +67,32 @@ async function fetchOgData(url) {
     const preco = priceMatch ? parseFloat(priceMatch[1]) : 0;
 
     const result = { titulo: title, imagem_url: image, preco };
-    linkCache.set(url, result);
+    linkCache.set(url, result, 30 * 60 * 1000);
     return result;
   } catch (err) {
     logger.error({ url, erro: err.message });
     return { titulo: 'Produto', imagem_url: null, preco: 0 };
   }
+}
+
+function formatOfertaMessage(oferta) {
+  const plataforma = oferta.plataforma.toUpperCase();
+  const preco = Number(oferta.preco).toFixed(2).replace('.', ',');
+  const precoDe = Number(oferta.preco_de).toFixed(2).replace('.', ',');
+  const desconto = oferta.desconto_pct || 0;
+
+  let message = `🔥 *${plataforma}* - ${oferta.titulo?.substring(0, 80)}\n\n`;
+  
+  if (desconto > 0) {
+    message += `💰 *DE: R$ ${precoDe}* POR: *R$ ${preco}*\n`;
+    message += `🎉 *${desconto}% OFF!*\n\n`;
+  } else {
+    message += `💰 R$ ${preco}\n\n`;
+  }
+  
+  message += `[Comprar ↗](${oferta.link_afiliado})`;
+
+  return message;
 }
 
 export function init(token, groupIds, onOferta) {
@@ -91,44 +108,66 @@ export function init(token, groupIds, onOferta) {
 
   bot.on('message:text', async (ctx) => {
     try {
-      const chatId = String(ctx.msg.chat.id);
+      const chatId = ctx.msg.chat.id;
+      const chatIdStr = String(chatId);
 
-      if (!allowedGroupIds.includes(chatId)) return;
+      if (!allowedGroupIds.includes(chatIdStr)) return;
+      if (chatIdsProcessados.has(chatId)) return;
+      chatIdsProcessados.add(chatId);
 
-      const urls = extractUrls(ctx.msg.text);
+      const text = ctx.msg.text || '';
+      const urls = extractUrls(text);
+      
       if (urls.length === 0) return;
 
-      logger.info({ chatId, urls: urls.length, msg: 'URLs detectadas em grupo' });
+      logger.info({ chatId, urls: urls.length, msg: 'Mensagem com URLs detectadas' });
 
       for (const url of urls) {
         try {
           const plataforma = detectPlatform(url);
-
           if (plataforma === 'desconhecida') continue;
 
           const ogData = await fetchOgData(url);
-          const linkAfiliado = buildAffiliateLink(url, plataforma);
+          const { preco, preco_de } = extractPrice(text);
+          let discountPct = calculateDiscount(ogData.preco || preco, preco_de);
+          
+          if (!discountPct && preco_de > preco) {
+            discountPct = calculateDiscount(ogData.preco || preco, preco_de);
+          }
 
           const oferta = {
-            titulo: ogData.titulo?.substring(0, 200) || 'Produto',
-            preco: ogData.preco || 0,
-            preco_de: ogData.preco || 0,
-            desconto_pct: 0,
-            link_afiliado: linkAfiliado,
+            titulo: ogData.titulo?.substring(0, 200) || text.substring(0, 100),
+            preco: ogData.preco || preco || 0,
+            preco_de: preco_de || ogData.preco || preco,
+            desconto_pct: discountPct,
+            link_afiliado: url,
             imagem_url: ogData.imagem_url,
             plataforma,
             fonte: 'telegram_listener',
           };
 
+          const message = formatOfertaMessage(oferta);
+          
+          try {
+            await ctx.reply(message, { parse_mode: 'Markdown' });
+            logger.info({ plataforma, msg: 'Oferta enviada para o grupo' });
+          } catch (e) {
+            logger.error({ erro: e.message, msg: 'Erro ao enviar mensagem' });
+          }
+
           if (onOfertaCallback) {
-            await onOfertaCallback(oferta);
+            try {
+              await onOfertaCallback(oferta);
+            } catch (e) {
+              logger.error({ erro: e.message, msg: 'Erro no callback' });
+            }
           }
         } catch (err) {
-          logger.error({ url, erro: err.message, msg: 'Erro ao processar URL específica' });
+          logger.error({ url, erro: err.message, msg: 'Erro ao processar URL' });
         }
       }
     } catch (err) {
-      logger.error({ erro: err.message, msg: 'Erro no handler de mensagem' });
+      logger.error({ erro: err.message, msg: 'Erro no handler' });
     }
   });
 
@@ -136,7 +175,7 @@ export function init(token, groupIds, onOferta) {
     logger.error({ erro: err.message, msg: 'Erro no bot listener' });
   });
 
-  logger.info({ grupos: allowedGroupIds, msg: 'Telegram listener iniciado' });
+  logger.info({ grupos: allowedGroupIds, msg: 'Telegram listener iniciado (modo grupo)' });
   return bot;
 }
 
