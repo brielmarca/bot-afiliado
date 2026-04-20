@@ -22,9 +22,6 @@ function buildAffiliateLink(url) {
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
 }
-    return url;
-  }
-}
 
 function detectPlatform(url) {
   const urlLower = url.toLowerCase();
@@ -89,17 +86,16 @@ async function fetchWithRetry(attempt = 1) {
       }
     }
 
-    logger.info({ ofertas: offers.length, fonte: 'shopee_rss' });
     rssCache.set(cacheKey, offers, 10 * 60 * 1000);
     return offers;
   } catch (err) {
-    logger.error({ erro: err.message, attempt, fonte: 'shopee' });
-    
+    logger.error({ erro: err.message, attempt, msg: 'Erro ao buscar Shopee RSS' });
+
     if (attempt < MAX_RETRIES) {
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
       return fetchWithRetry(attempt + 1);
     }
-    
+
     return [];
   }
 }
