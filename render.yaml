@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: bot-afiliado
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /app/data/bot.db
+      - key: PORT
+        value: 3000
+    disk:
+      name: sqlite-data
+      mountPath: /app/data
+      sizeGB: 1
