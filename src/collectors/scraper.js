@@ -92,7 +92,7 @@ function parseHTMLToOffers(html, sourceName) {
 
   const linkRegex = /href="(https?:\/\/[^"'>]+)"/gi;
   const titleRegex = /<a[^>]*title="([^">]+)"/gi;
-  const priceRegex = /R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?/g;
+  const priceRegex = /R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g;
 
   const links = [];
   let match;
