@@ -1,6 +1,7 @@
 import mercadolivre from './mercadolivre.js';
 import shopee from './shopee.js';
 import rss from './rss.js';
+import scraper from './scraper.js';
 import logger from '../utils/logger.js';
 
 export async function coletarTodas() {
@@ -8,6 +9,7 @@ export async function coletarTodas() {
     mercadolivre.collect(),
     shopee.collect(),
     rss.collect(),
+    scraper.collect(),
   ]);
 
   let allOffers = [];
