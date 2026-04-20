@@ -171,7 +171,12 @@ async function start() {
         process.env.SOURCE_GROUP_IDS,
         async (oferta) => {
           try {
-            await ofertaService.salvarOferta(oferta);
+            const id = await ofertaService.salvarOferta(oferta);
+            if (id) {
+              setTimeout(async () => {
+                await broadcastService.broadcastOferta(oferta);
+              }, 5000);
+            }
           } catch (err) {
             logger.error({ erro: err.message, msg: 'Falha ao salvar oferta do listener' });
           }
