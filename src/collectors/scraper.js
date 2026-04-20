@@ -2,6 +2,15 @@ import axios from 'axios';
 import logger from '../utils/logger.js';
 import { rssCache } from '../utils/cache.js';
 
+const AFFILIATE_ID = 'eahgdbefc60983';
+
+function buildAffiliateLink(url) {
+  if (!url) return url;
+  if (url.includes('matt_tool=')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
+}
+
 const SITES = [
   {
     name: 'pelando',
@@ -107,7 +116,7 @@ function parseHTMLToOffers(html, sourceName) {
       preco: 0,
       preco_de: 0,
       desconto_pct: 0,
-      link_afiliado: url,
+      link_afiliado: buildAffiliateLink(url),
       imagem_url: null,
       plataforma,
       fonte: sourceName,

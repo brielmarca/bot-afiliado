@@ -14,10 +14,20 @@ function extractPrice(text) {
   return parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
 }
 
+const AFFILIATE_ID = 'eahgdbefc60983';
+
 function buildAffiliateLink(url) {
+  if (!url) return url;
+  if (url.includes('matt_tool=')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
+}
+
+/*
+function buildAffiliateLinkShopee(url) {
   const pid = process.env.SHOPEE_PID;
   if (!pid) {
-    return url;
+    return buildAffiliateLink(url);
   }
 
   try {

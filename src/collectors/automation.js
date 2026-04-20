@@ -48,45 +48,28 @@ async function fetchMLToken() {
   }
 }
 
-function buildML AffiliateLink(url) {
-  const tag = process.env.ML_PARTNER_ID;
-  if (!tag) return url;
+const AFFILIATE_ID = 'eahgdbefc60983';
+
+function buildAffiliateLink(url) {
+  if (!url) return url;
+  
+  if (url.includes('matt_tool=')) return url;
+  
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}tag=${tag}`;
+  return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
 }
 
-function buildShopeeLink(url) {
-  const pid = process.env.SHOPEE_PID;
-  if (!pid) return url;
-  try {
-    const urlObj = new URL(url);
-    const itemId = urlObj.pathname.split('/').pop()?.replace('.html', '');
-    return `https://shopee.com.br/${itemId}?p=${pid}`;
-  } catch {
-    return url;
-  }
-}
-
-function buildAliExpressLink(url) {
-  const admitadCid = process.env.ADMITAD_CAMPAIGN;
-  if (!admitadCid) return url;
-  return `${url}?affiliate=${admitadCid}`;
-}
-
-export function buildAffiliateLink(url, plataforma) {
+function detectPlatform(url) {
   const urlLower = url.toLowerCase();
-  
-  if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) {
-    return buildMLAffiliateLink(url);
-  }
-  if (urlLower.includes('shopee')) {
-    return buildShopeeLink(url);
-  }
-  if (urlLower.includes('aliexpress')) {
-    return buildAliExpressLink(url);
-  }
-  
-  return url;
+  if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) return 'mercadolivre';
+  if (urlLower.includes('shopee')) return 'shopee';
+  if (urlLower.includes('aliexpress') || urlLower.includes('ali.')) return 'aliexpress';
+  if (urlLower.includes('amazon')) return 'amazon';
+  return 'desconhecida';
+}
+
+export function convertToAffiliate(url) {
+  return buildAffiliateLink(url);
 }
 
 function detectPlatform(url) {
@@ -172,7 +155,7 @@ async function collectFromML() {
           preco: current,
           preco_de: original,
           desconto_pct: discount,
-          link_afiliado: buildAffiliateLink(item.permalink, 'mercadolivre'),
+          link_afiliado: buildAffiliateLink(item.permalink),
           imagem_url: item.thumbnail,
           plataforma: 'mercadolivre',
           fonte: 'ml-api',
@@ -244,7 +227,7 @@ async function collectFromPromoSites() {
         preco: 0,
         preco_de: 0,
         desconto_pct: 0,
-        link_afiliado: buildAffiliateLink(url, plataforma),
+link_afiliado: buildAffiliateLink(url),
         imagem_url: null,
         plataforma,
         fonte: site.name,
@@ -281,12 +264,12 @@ export async function runCollection() {
 export async function processLink(url, chatId = null) {
   const plataforma = detectPlatform(url);
   
-  const oferta = {
-    titulo: url.split('/').pop()?.replace(/-/g, ' ').substring(0, 150) || 'Produto',
-    preco: 0,
-    preco_de: 0,
-    desconto_pct: 0,
-    link_afiliado: buildAffiliateLink(url, plataforma),
+const oferta = {
+        titulo: url.split('/').pop()?.replace(/-/g, ' ').substring(0, 150) || 'Produto',
+        preco: 0,
+        preco_de: 0,
+        desconto_pct: 0,
+        link_afiliado: buildAffiliateLink(url),
     imagem_url: null,
     plataforma,
     fonte: chatId ? 'grupo' : 'manual',

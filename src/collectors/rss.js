@@ -46,22 +46,13 @@ function detectPlatform(url) {
   return 'desconhecida';
 }
 
-function injectAffiliate(url, plataforma) {
-  try {
-    const urlObj = new URL(url);
+const AFFILIATE_ID = 'eahgdbefc60983';
 
-    if (plataforma === 'mercadolivre') {
-      const partnerId = process.env.ML_PARTNER_ID;
-      if (partnerId) urlObj.searchParams.set('tag', partnerId);
-    } else if (plataforma === 'shopee') {
-      const pid = process.env.SHOPEE_PID;
-      if (pid && url.includes('shope.ee')) urlObj.searchParams.set('pid', pid);
-    }
-
-    return urlObj.toString();
-  } catch {
-    return url;
-  }
+function buildAffiliateLink(url) {
+  if (!url) return url;
+  if (url.includes('matt_tool=')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
 }
 
 async function fetchFeedWithRetry(feed, attempt = 1) {
@@ -143,7 +134,7 @@ export async function collect() {
           preco,
           preco_de: preco_de || preco,
           desconto_pct: discountPct,
-          link_afiliado: linkAfiliado,
+          link_afiliado: buildAffiliateLink(link),
           imagem_url: item.enclosure?.url || null,
           plataforma,
           fonte: feed.name,

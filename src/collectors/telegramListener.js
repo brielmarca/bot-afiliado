@@ -7,6 +7,15 @@ let bot = null;
 let onOfertaCallback = null;
 const chatIdsProcessados = new Set();
 
+const AFFILIATE_ID = 'eahgdbefc60983';
+
+function buildAffiliateLink(url) {
+  if (!url) return url;
+  if (url.includes('matt_tool=')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
+}
+
 const LINK_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
 
 function extractUrls(text) {
@@ -140,7 +149,7 @@ export function init(token, groupIds, onOferta) {
             preco: ogData.preco || preco || 0,
             preco_de: preco_de || ogData.preco || preco,
             desconto_pct: discountPct,
-            link_afiliado: url,
+            link_afiliado: buildAffiliateLink(url),
             imagem_url: ogData.imagem_url,
             plataforma,
             fonte: 'telegram_listener',

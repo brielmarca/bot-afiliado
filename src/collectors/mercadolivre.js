@@ -11,14 +11,22 @@ async function getAccessToken() {
     return accessToken;
   }
 
+  const clientId = process.env.ML_CLIENT_ID;
+  const clientSecret = process.env.ML_CLIENT_SECRET;
+  
+  if (!clientId || !clientSecret) {
+    logger.warn({ msg: 'ML credentials não configuradas' });
+    return null;
+  }
+
   const response = await withRetry(
     async () =>
       await axios.post(
         `${ML_API_BASE}/oauth/token`,
         new URLSearchParams({
           grant_type: 'client_credentials',
-          client_id: process.env.ML_CLIENT_ID,
-          client_secret: process.env.ML_CLIENT_SECRET,
+          client_id: clientId,
+          client_secret: clientSecret,
         }),
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       ),
@@ -33,14 +41,13 @@ async function getAccessToken() {
   return accessToken;
 }
 
-function buildAffiliateLink(permalink) {
-  const partnerId = process.env.ML_PARTNER_ID;
-  if (!partnerId) {
-    logger.warn({ msg: 'ML_PARTNER_ID não configurado' });
-    return permalink;
-  }
-  const separator = permalink.includes('?') ? '&' : '?';
-  return `${permalink}${separator}tag=${partnerId}`;
+const AFFILIATE_ID = 'eahgdbefc60983';
+
+function buildAffiliateLink(url) {
+  if (!url) return url;
+  if (url.includes('matt_tool=')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
 }
 
 export async function collect() {
