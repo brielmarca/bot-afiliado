@@ -70,11 +70,16 @@ async function fetchFeedWithRetry(feed, attempt = 1) {
   if (cached) return cached;
 
   try {
+    logger.info({ feed: feed.name, url: feed.url, msg: 'Buscando feed' });
     const response = await axios.get(feed.url, {
       timeout: DEFAULT_TIMEOUT,
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+      },
     });
 
+    logger.info({ feed: feed.name, status: response.status, msg: 'Feed recebido' });
     const parsed = await parser.parseString(response.data);
     rssCache.set(cacheKey, parsed, 10 * 60 * 1000);
     return parsed;
