@@ -22,22 +22,6 @@ function buildAffiliateLink(url) {
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
 }
-
-/*
-function buildAffiliateLinkShopee(url) {
-  const pid = process.env.SHOPEE_PID;
-  if (!pid) {
-    return buildAffiliateLink(url);
-  }
-
-  try {
-    const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/').filter(Boolean);
-    const itemId = pathParts.pop()?.replace('.html', '') || '';
-    const shopId = pathParts.find((p) => p.startsWith('shop/'))?.replace('shop/', '') || '';
-
-    return `https://shope.ee/affiliate?pid=${pid}&item_id=${itemId}&shop_id=${shopId}`;
-  } catch (err) {
     return url;
   }
 }
