@@ -163,22 +163,25 @@ async function start() {
   }
 
   // 4. Iniciar listener Telegram
-  try {
-    telegramListener.init(
-      process.env.LISTENER_BOT_TOKEN,
-      process.env.SOURCE_GROUP_IDS,
-      async (oferta) => {
-        try {
-          await ofertaService.salvarOferta(oferta);
-        } catch (err) {
-          logger.error({ erro: err.message, msg: 'Falha ao salvar oferta do listener' });
+  const listenerToken = process.env.LISTENER_BOT_TOKEN || process.env.BOT_TOKEN;
+  if (listenerToken && process.env.SOURCE_GROUP_IDS) {
+    try {
+      telegramListener.init(
+        listenerToken,
+        process.env.SOURCE_GROUP_IDS,
+        async (oferta) => {
+          try {
+            await ofertaService.salvarOferta(oferta);
+          } catch (err) {
+            logger.error({ erro: err.message, msg: 'Falha ao salvar oferta do listener' });
+          }
         }
-      }
-    );
-    telegramListener.start();
-    logger.info({ msg: 'Telegram listener iniciado' });
-  } catch (err) {
-    logger.error({ erro: err.message, msg: 'Falha ao iniciar listener' });
+      );
+      telegramListener.start();
+      logger.info({ msg: 'Telegram listener iniciado' });
+    } catch (err) {
+      logger.error({ erro: err.message, msg: 'Falha ao iniciar listener' });
+    }
   }
 
   // 5. Iniciar cron jobs
