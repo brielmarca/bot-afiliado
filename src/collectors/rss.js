@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import axios from 'axios';
 import logger from '../utils/logger.js';
 import { rssCache } from '../utils/cache.js';
+import { detectPlatform } from '../utils/platform.js';
 
 const parser = new Parser({ timeout: 10000 });
 
@@ -31,19 +32,6 @@ function extractPrice(text) {
 function calculateDiscount(preco, precoDe) {
   if (!precoDe || precoDe <= preco || precoDe <= 0) return 0;
   return Math.round(((precoDe - preco) / precoDe) * 100);
-}
-
-function detectPlatform(url) {
-  try {
-    const urlLower = url.toLowerCase();
-    if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) return 'mercadolivre';
-    if (urlLower.includes('shopee')) return 'shopee';
-    if (urlLower.includes('aliexpress') || urlLower.includes('ali.')) return 'aliexpress';
-    if (urlLower.includes('amazon')) return 'amazon';
-  } catch (e) {
-    logger.warn({ erro: e.message, msg: 'Erro ao detectar plataforma' });
-  }
-  return 'desconhecida';
 }
 
 const AFFILIATE_ID = 'eahgdbefc60983';

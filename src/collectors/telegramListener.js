@@ -2,6 +2,7 @@ import { Bot } from 'grammy';
 import axios from 'axios';
 import logger from '../utils/logger.js';
 import { linkCache } from '../utils/cache.js';
+import { detectPlatform } from '../utils/platform.js';
 
 let bot = null;
 let onOfertaCallback = null;
@@ -22,15 +23,6 @@ function extractUrls(text) {
   if (!text) return [];
   const matches = text.match(LINK_REGEX);
   return matches || [];
-}
-
-function detectPlatform(url) {
-  const urlLower = url.toLowerCase();
-  if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) return 'mercadolivre';
-  if (urlLower.includes('shopee')) return 'shopee';
-  if (urlLower.includes('aliexpress') || urlLower.includes('ali.')) return 'aliexpress';
-  if (urlLower.includes('amazon')) return 'amazon';
-  return 'desconhecida';
 }
 
 function extractPrice(text) {

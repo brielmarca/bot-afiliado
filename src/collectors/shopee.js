@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import axios from 'axios';
 import logger from '../utils/logger.js';
 import { rssCache } from '../utils/cache.js';
+import { detectPlatform } from '../utils/platform.js';
 
 const parser = new Parser({ timeout: 10000 });
 
@@ -21,15 +22,6 @@ function buildAffiliateLink(url) {
   if (url.includes('matt_tool=')) return url;
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
-}
-
-function detectPlatform(url) {
-  const urlLower = url.toLowerCase();
-  if (urlLower.includes('shopee')) return 'shopee';
-  if (urlLower.includes('mercadolivre')) return 'mercadolivre';
-  if (urlLower.includes('aliexpress')) return 'aliexpress';
-  if (urlLower.includes('amazon')) return 'amazon';
-  return 'desconhecida';
 }
 
 async function fetchWithRetry(attempt = 1) {

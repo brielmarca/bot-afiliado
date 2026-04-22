@@ -1,6 +1,7 @@
 import axios from 'axios';
 import logger from '../utils/logger.js';
 import { rssCache } from '../utils/cache.js';
+import { detectPlatform } from '../utils/platform.js';
 
 const AFFILIATE_ID = 'eahgdbefc60983';
 
@@ -45,15 +46,6 @@ function calculateDiscount(preco, precoDe) {
   return Math.round(((precoDe - preco) / precoDe) * 100);
 }
 
-function detectPlatform(url) {
-  const urlLower = url.toLowerCase();
-  if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) return 'mercadolivre';
-  if (urlLower.includes('shopee')) return 'shopee';
-  if (urlLower.includes('aliexpress') || urlLower.includes('ali.')) return 'aliexpress';
-  if (urlLower.includes('amazon')) return 'amazon';
-  return 'desconhecida';
-}
-
 async function fetchSiteHTML(site) {
   const cacheKey = `html_${site.name}`;
   const cached = rssCache.get(cacheKey);
@@ -92,7 +84,7 @@ function parseHTMLToOffers(html, sourceName) {
 
   const linkRegex = /href="(https?:\/\/[^"'>]+)"/gi;
   const titleRegex = /<a[^>]*title="([^">]+)"/gi;
-  const priceRegex = /R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g;
+  const priceRegex = /R\$\s*(\d{1,3}(?:[.]?\d{3})*(?:,\d{2})?)/g;
 
   const links = [];
   let match;

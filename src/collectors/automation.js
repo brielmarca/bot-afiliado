@@ -2,6 +2,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import logger from '../utils/logger.js';
 import { rssCache } from '../utils/cache.js';
+import { detectPlatform } from '../utils/platform.js';
 
 const ML_API_BASE = 'https://api.mercadolibre.com';
 let mlToken = null;
@@ -59,26 +60,8 @@ function buildAffiliateLink(url) {
   return `${url}${separator}matt_tool=${AFFILIATE_ID}`;
 }
 
-function detectPlatform(url) {
-  const urlLower = url.toLowerCase();
-  if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) return 'mercadolivre';
-  if (urlLower.includes('shopee')) return 'shopee';
-  if (urlLower.includes('aliexpress') || urlLower.includes('ali.')) return 'aliexpress';
-  if (urlLower.includes('amazon')) return 'amazon';
-  return 'desconhecida';
-}
-
 export function convertToAffiliate(url) {
   return buildAffiliateLink(url);
-}
-
-function detectPlatform(url) {
-  const urlLower = url.toLowerCase();
-  if (urlLower.includes('mercadolivre') || urlLower.includes('ml.')) return 'mercadolivre';
-  if (urlLower.includes('shopee')) return 'shopee';
-  if (urlLower.includes('aliexpress') || urlLower.includes('ali.')) return 'aliexpress';
-  if (urlLower.includes('amazon')) return 'amazon';
-  return 'desconhecida';
 }
 
 function generateHash(url) {
@@ -212,7 +195,7 @@ async function collectFromPromoSites() {
     if (!html) continue;
     
     const linkRegex = /href="(https?:\/\/[^"'>]+(?:mercadolivre|shopee|aliexpress|amazon)[^"']+)"/gi;
-    const priceRegex = /R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})/g;
+    const priceRegex = /R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g;
     
     const links = new Set();
     let match;
